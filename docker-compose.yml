@@ -1,0 +1,91 @@
+services:
+  # ==========================================
+  # 1. Database: MySQL
+  # ==========================================
+  mysql_db:
+    image: mysql:8.0
+    container_name: app_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  # ==========================================
+  # 2. Database GUI: phpMyAdmin
+  # ==========================================
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: app_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql_db
+      PMA_PORT: 3306
+    depends_on:
+      - mysql_db
+    networks:
+      - app-network
+
+  # ==========================================
+  # 3. Backend: Node.js API
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app_backend
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      DB_HOST: mysql_db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      - mysql_db
+    networks:
+      - app-network
+
+  # ==========================================
+  # 4. Frontend: Nuxt 3
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: app_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.nuxt
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+# บันทึกข้อมูล MySQL ลงฮาร์ดดิสก์ (ปิดเครื่องข้อมูลไม่หาย)
+volumes:
+  mysql_data:
+
+# เน็ตเวิร์กจำลองให้ Container ทุกตัวคุยกันได้
+networks:
+  app-network:
+    driver: bridge
