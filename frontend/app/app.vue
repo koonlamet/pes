@@ -2,7 +2,7 @@
   <v-app>
     <NuxtRouteAnnouncer />
     <NuxtLayout>
-      <NuxtWelcome/>
+      <NuxtPage/>
     </NuxtLayout>
   </v-app>
 </template>
